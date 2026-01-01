@@ -54,7 +54,7 @@ To get a local copy up and running, follow these simple steps.
 ### 1. Clone the Repo
 
 ```bash
-git clone https://github.com/yourusername/secure-file-vault.git
+git clone https://github.com/kursat-dev/secure-file-vault.git
 cd secure-file-vault
 ```
 
