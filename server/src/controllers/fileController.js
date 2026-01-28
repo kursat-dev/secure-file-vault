@@ -1,7 +1,9 @@
 import prisma from '../utils/prisma.js';
 import fs from 'fs/promises';
 import path from 'path';
+import crypto from 'crypto';
 import { encryptFile, decryptFile } from '../utils/encryption.js';
+import { recordAuditLog } from '../utils/audit.js';
 
 import os from 'os';
 
@@ -23,7 +25,6 @@ export const uploadFile = async (req, res) => {
 
         // Encrypt the file
         const { encryptedContent, iv, authTag, encryptedKey } = encryptFile(buffer, masterKey);
-        // Note: buffer is available because valid multer logic (memory storage)
 
         // Generate unique filename for storage
         const encryptedFilename = `${Date.now()}-${crypto.randomUUID()}.enc`;
@@ -46,6 +47,14 @@ export const uploadFile = async (req, res) => {
             },
         });
 
+        await recordAuditLog({
+            userId: req.user.userId,
+            fileId: file.id,
+            action: 'FILE_UPLOAD',
+            details: `Uploaded file: ${originalname}`,
+            req
+        });
+
         res.status(201).json(file);
     } catch (error) {
         console.error(error);
@@ -58,6 +67,7 @@ export const listFiles = async (req, res) => {
         const files = await prisma.file.findMany({
             where: { userId: req.user.userId },
             orderBy: { createdAt: 'desc' },
+            include: { shares: true }
         });
         res.json(files);
     } catch (error) {
@@ -84,11 +94,53 @@ export const downloadFile = async (req, res) => {
             process.env.MASTER_KEY
         );
 
+        await recordAuditLog({
+            userId: req.user.userId,
+            fileId: file.id,
+            action: 'FILE_DOWNLOAD',
+            details: `Downloaded file: ${file.originalName}`,
+            req
+        });
+
         res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
         res.setHeader('Content-Type', file.mimeType);
         res.send(decryptedBuffer);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Download failed' });
+    }
+};
+
+export const deleteFile = async (req, res) => {
+    try {
+        const fileId = req.params.id;
+        const file = await prisma.file.findUnique({ where: { id: fileId } });
+
+        if (!file) return res.status(404).json({ error: 'File not found' });
+        if (file.userId !== req.user.userId) return res.status(403).json({ error: 'Access denied' });
+
+        // Delete from disk
+        const filePath = path.join(UPLOAD_DIR, file.encryptedName);
+        try {
+            await fs.unlink(filePath);
+        } catch (e) {
+            console.warn(`File already missing from disk: ${file.encryptedName}`);
+        }
+
+        // Delete from DB
+        await prisma.file.delete({ where: { id: fileId } });
+
+        await recordAuditLog({
+            userId: req.user.userId,
+            fileId: null,
+            action: 'FILE_DELETE',
+            details: `Deleted file: ${file.originalName}`,
+            req
+        });
+
+        res.json({ message: 'File deleted' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Delete failed' });
     }
 };
