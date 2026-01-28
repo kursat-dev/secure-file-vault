@@ -13,6 +13,7 @@ model User {
   password  String
   createdAt DateTime @default(now())
   files     File[]
+  auditLogs AuditLog[]
 }
 
 model File {
@@ -27,4 +28,29 @@ model File {
   createdAt     DateTime @default(now())
   user          User     @relation(fields: [userId], references: [id])
   userId        String
+  shares        SharedLink[]
+  auditLogs     AuditLog[]
+}
+
+model SharedLink {
+  id           String    @id @default(uuid())
+  fileId       String
+  file         File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  shareKey     String    @unique // Publicly visible ID in the URL
+  passwordHash String?
+  expiresAt    DateTime?
+  accessCount  Int       @default(0)
+  createdAt    DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  fileId    String?
+  file      File?    @relation(fields: [fileId], references: [id])
+  action    String   // UPLOAD, DOWNLOAD, DELETE, SHARE, ACCESS_SHARE
+  details   String?
+  ipAddress String?
+  timestamp DateTime @default(now())
 }
