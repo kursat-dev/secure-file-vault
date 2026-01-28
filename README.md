@@ -30,9 +30,10 @@ Built with a **Node.js** backend and **React** frontend, it features a modern da
 
 - 🎨 **Modern Interface**: Professional UI built with React and Tailwind CSS.
 - 🔒 **Encryption-at-Rest**: Files are encrypted using **AES-256-GCM**.
+- 🔗 **Expiring Shared Links**: Create public download links with optional password protection and expiration dates.
+- 📋 **Security Audit Logs**: Comprehensive tracking of file uploads, downloads, deletions, and sharing actions.
 - 🔑 **Secure Key Management**: Unique Data Encryption Key (DEK) per file, wrapped with a Master Key.
 - 👥 **Multi-User Support**: JWT-based authentication with isolation between users.
-- ⚡ **Fast & Efficient**: Stream-optimized upload and download handling (memory storage for prototype).
 - 🛡️ **Full Integrity**: Authenticated encryption ensures data hasn't been tampered with.
 
 ## 🛠 Tech Stack
